@@ -401,6 +401,7 @@
       if (appSettings.musicEnabled) {
         if (customAudioPlayer.src !== appSettings.customMusicUrl) {
           customAudioPlayer.src = appSettings.customMusicUrl;
+          customAudioPlayer.load();
         }
         customAudioPlayer.volume = appSettings.musicVolume;
         customAudioPlayer.play().catch(e => console.log("Audio play blocked by browser until interacted"));
@@ -967,12 +968,27 @@
     [taskTextInput, taskTimeInput].forEach(input => { input.addEventListener('keypress', (e) => { if (e.key === 'Enter') addTask(); }); });
     dateInput.addEventListener('change', (e) => { selectedDate = e.target.value; render(); });
 
-    // Global interaction listener for browser autoplay policies
-    document.body.addEventListener('click', () => {
-        if(appSettings.musicEnabled && customAudioPlayer.paused) {
-            customAudioPlayer.play().catch(e => console.log("Still blocked or path invalid."));
+    // Global interaction listener for browser autoplay policies (Mobile Fix)
+    const unlockMedia = () => {
+        if (customAudioPlayer.paused && appSettings.musicEnabled) {
+            customAudioPlayer.play().catch(e => console.log("Blocked."));
+        } else if (!appSettings.musicEnabled) {
+            customAudioPlayer.play().then(() => customAudioPlayer.pause()).catch(e => {});
         }
-    }, { once: true });
+        
+        if(appSettings.enableSounds && !audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if(audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+
+        document.removeEventListener('click', unlockMedia);
+        document.removeEventListener('touchstart', unlockMedia);
+    };
+
+    document.addEventListener('click', unlockMedia);
+    document.addEventListener('touchstart', unlockMedia, { passive: true });
 
     // Boot up
     checkActiveSession(); 
