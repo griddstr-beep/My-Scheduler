@@ -82,7 +82,7 @@
     input[type="text"].auth-input, input[type="email"].auth-input, input[type="password"], input[type="text"].task-input { width: 100%; background-color: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-main); padding: 1rem; border-radius: 8px; font-size: 16px; outline: none; -webkit-appearance: none; }
     input:focus, select:focus { border-color: var(--accent-color); }
     select.settings-select { width: 100%; background-color: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.75rem; border-radius: 8px; font-size: 16px; outline: none; margin-top: 0.5rem; }
-    input[type="url"].settings-select { width: 100%; background-color: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.75rem; border-radius: 8px; font-size: 16px; outline: none; margin-top: 0.5rem; }
+    input[type="text"].settings-select { width: 100%; background-color: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.75rem; border-radius: 8px; font-size: 16px; outline: none; margin-top: 0.5rem; }
     .toggle-link { text-align: center; font-size: 0.85rem; color: var(--time-color); cursor: pointer; margin-top: 0.25rem; padding: 0.5rem; }
     
     .hidden { display: none !important; }
@@ -227,7 +227,7 @@
       </div>
       
       <div style="margin-top: -0.25rem; margin-bottom: 0.5rem;">
-        <input type="url" id="custom-music-url" class="settings-select" placeholder="Paste direct MP3 URL here (Optional)...">
+        <input type="text" id="custom-music-url" class="settings-select" placeholder="Enter MP3 file name or URL (e.g., Like-a-Prayer.mp3)...">
       </div>
 
       <div class="setting-row">
@@ -399,7 +399,7 @@
 
     function applyMusicState() {
       if (appSettings.musicEnabled) {
-        if (customAudioPlayer.src !== appSettings.customMusicUrl) {
+        if (customAudioPlayer.src !== appSettings.customMusicUrl && customAudioPlayer.src !== window.location.href + appSettings.customMusicUrl) {
           customAudioPlayer.src = appSettings.customMusicUrl;
           customAudioPlayer.load();
         }
@@ -505,7 +505,7 @@
       const defaultSettings = { 
         hideCompleted: false, activeCountdown: 'none', enableSounds: true, compactMode: false, 
         activeTheme: 'auto', musicEnabled: false, musicVolume: 0.3, 
-        customMusicUrl: 'https://www.dropbox.com/scl/fi/nlk8kj1wfbz9wdqzs1nh9/Like-a-Prayer.mp3?rlkey=b9nwtzss4ouevzxjgowlzc1rk&st=hluta45k&dl=1' 
+        customMusicUrl: 'Like-a-Prayer.mp3' 
       };
       if (currentUser && supabaseClient) {
         const { data, error } = await supabaseClient.from('planner_settings').select('settings').eq('user_id', currentUser.id).maybeSingle();
@@ -514,8 +514,8 @@
       } else {
         appSettings = JSON.parse(localStorage.getItem('app_settings_' + getStorageKeyPrefix())) || defaultSettings;
       }
-      if(!appSettings.customMusicUrl && appSettings.customMusicUrl !== "") {
-         appSettings.customMusicUrl = 'https://www.dropbox.com/scl/fi/nlk8kj1wfbz9wdqzs1nh9/Like-a-Prayer.mp3?rlkey=b9nwtzss4ouevzxjgowlzc1rk&st=hluta45k&dl=1';
+      if(!appSettings.customMusicUrl || appSettings.customMusicUrl.includes("dropbox")) {
+         appSettings.customMusicUrl = 'Like-a-Prayer.mp3';
       }
     }
 
@@ -969,11 +969,16 @@
     dateInput.addEventListener('change', (e) => { selectedDate = e.target.value; render(); });
 
     // Global interaction listener for browser autoplay policies (Mobile Fix)
-    const unlockMedia = () => {
-        if (customAudioPlayer.paused && appSettings.musicEnabled) {
-            customAudioPlayer.play().catch(e => console.log("Blocked."));
-        } else if (!appSettings.musicEnabled) {
-            customAudioPlayer.play().then(() => customAudioPlayer.pause()).catch(e => {});
+    const unlockMedia = async () => {
+        try {
+            if (appSettings.musicEnabled && customAudioPlayer.paused) {
+                await customAudioPlayer.play();
+            } else if (!appSettings.musicEnabled) {
+                await customAudioPlayer.play();
+                customAudioPlayer.pause();
+            }
+        } catch (e) {
+            console.log("Audio play blocked by browser until interacted.");
         }
         
         if(appSettings.enableSounds && !audioCtx) {
