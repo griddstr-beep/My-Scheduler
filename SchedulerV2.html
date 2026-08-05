@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Schedule">
+  <meta name="theme-color" content="#0f172a">
+  
+  <link rel="apple-touch-icon" href="https://via.placeholder.com/192/6366f1/ffffff?text=🗓️">
+  <title>Daily Schedule Planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <style>
+    :root {
+      --bg-color: #0f172a; --card-bg: #1e293b; --border-color: #334155;
+      --text-main: #f8fafc; --text-muted: #94a3b8; --accent-color: #6366f1;
+      --completed-color: #10b981; --danger-color: #ef4444; --time-color: #38bdf8;
+    }
+
+    .bg-base { position: fixed; inset: 0; z-index: -2; background-image: radial-gradient(rgba(255, 255, 255, 0.04) 2px, transparent 2px); background-size: 30px 30px; }
+    .bg-interactive { position: fixed; inset: 0; z-index: -1; pointer-events: none; background-image: radial-gradient(rgba(255, 255, 255, 0.3) 3px, transparent 3px); background-size: 30px 30px; -webkit-mask-image: radial-gradient(circle 120px at var(--mouse-x, -100px) var(--mouse-y, -100px), black, transparent); mask-image: radial-gradient(circle 120px at var(--mouse-x, -100px) var(--mouse-y, -100px), black, transparent); }
+
+    /* --- 23 CUSTOM THEMES --- */
+    body.gta-theme { --bg-color: #1a0b2e; --card-bg: #2d1147; --border-color: #ff59c7; --text-main: #ffffff; --text-muted: #ffb8e6; --accent-color: #00f0ff; --completed-color: #ff007f; --time-color: #ffea00; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); }
+    body.doomsday-theme { --bg-color: #05100a; --card-bg: #0b2115; --border-color: #10b981; --text-main: #e2e8f0; --text-muted: #94a3b8; --accent-color: #cbd5e1; --completed-color: #10b981; --time-color: #a7f3d0; background: linear-gradient(135deg, #05100a, #0f2b1d, #091a10); }
+    body.wolverine-theme { --bg-color: #171203; --card-bg: #292005; --border-color: #eab308; --text-main: #fefce8; --text-muted: #fef08a; --accent-color: #dc2626; --completed-color: #3b82f6; --time-color: #3b82f6; background: linear-gradient(135deg, #171203, #3a2c07, #1f1804); }
+    body.spiderman-theme { --bg-color: #0a0b10; --card-bg: #151828; --border-color: #e23636; --text-main: #ffffff; --text-muted: #cbd5e1; --accent-color: #518cce; --completed-color: #e23636; --time-color: #518cce; background: linear-gradient(135deg, #0a0b10, #161a2b, #0d111a); }
+    body.cyberpunk-theme { --bg-color: #0d0e15; --card-bg: #161824; --border-color: #fce205; --text-main: #ffffff; --text-muted: #a3a3a3; --accent-color: #00f0ff; --completed-color: #ff007f; --time-color: #fce205; background: #0d0e15; }
+    body.matrix-theme { --bg-color: #000000; --card-bg: #0a1a0a; --border-color: #00ff41; --text-main: #e0ffe0; --text-muted: #008f11; --accent-color: #00ff41; --completed-color: #008f11; --time-color: #00ff41; background: #000000; }
+    body.fortnite-theme { --bg-color: #1a0b2e; --card-bg: #2d1b4e; --border-color: #a855f7; --text-main: #ffffff; --text-muted: #d8b4fe; --accent-color: #3b82f6; --completed-color: #eab308; --time-color: #38bdf8; background: linear-gradient(135deg, #1e1b4b, #3b0764); }
+    body.rdr2-theme { --bg-color: #1c0e08; --card-bg: #2d1810; --border-color: #991b1b; --text-main: #fef3c7; --text-muted: #d4a373; --accent-color: #b91c1c; --completed-color: #b45309; --time-color: #f59e0b; background: linear-gradient(135deg, #1c0e08, #3e1f12); }
+    body.roblox-theme { --bg-color: #111111; --card-bg: #222222; --border-color: #dc2626; --text-main: #ffffff; --text-muted: #a3a3a3; --accent-color: #ffffff; --completed-color: #ef4444; --time-color: #e5e5e5; background: #0a0a0a; }
+    body.starwars-theme { --bg-color: #050505; --card-bg: #111111; --border-color: #3b82f6; --text-main: #ffffff; --text-muted: #9ca3af; --accent-color: #ffe81f; --completed-color: #ef4444; --time-color: #38bdf8; background: radial-gradient(circle, #1a1a1a, #000000); }
+    body.minecraft-theme { --bg-color: #2c1e16; --card-bg: #3d2a1f; --border-color: #4ade80; --text-main: #ffffff; --text-muted: #a3e635; --accent-color: #22c55e; --completed-color: #713f12; --time-color: #86efac; background: linear-gradient(to bottom, #166534, #3f2e24); }
+    body.pokemon-theme { --bg-color: #1e3a8a; --card-bg: #1e40af; --border-color: #facc15; --text-main: #ffffff; --text-muted: #bfdbfe; --accent-color: #ef4444; --completed-color: #facc15; --time-color: #fbbf24; background: linear-gradient(135deg, #1e3a8a, #ef4444); }
+    body.zelda-theme { --bg-color: #064e3b; --card-bg: #065f46; --border-color: #f59e0b; --text-main: #ecfccb; --text-muted: #6ee7b7; --accent-color: #fbbf24; --completed-color: #34d399; --time-color: #fcd34d; background: linear-gradient(135deg, #022c22, #064e3b); }
+    body.mario-theme { --bg-color: #7f1d1d; --card-bg: #991b1b; --border-color: #3b82f6; --text-main: #ffffff; --text-muted: #fca5a5; --accent-color: #facc15; --completed-color: #22c55e; --time-color: #60a5fa; background: linear-gradient(135deg, #7f1d1d, #1e3a8a); }
+    body.halo-theme { --bg-color: #06261f; --card-bg: #08332a; --border-color: #f59e0b; --text-main: #e0f2fe; --text-muted: #6ee7b7; --accent-color: #14b8a6; --completed-color: #38bdf8; --time-color: #fcd34d; background: linear-gradient(135deg, #021a14, #063d33); }
+    body.fallout-theme { --bg-color: #022c22; --card-bg: #064e3b; --border-color: #4ade80; --text-main: #22c55e; --text-muted: #16a34a; --accent-color: #4ade80; --completed-color: #166534; --time-color: #86efac; background: #022c22; }
+    body.skyrim-theme { --bg-color: #111827; --card-bg: #1f2937; --border-color: #9ca3af; --text-main: #f3f4f6; --text-muted: #6b7280; --accent-color: #d1d5db; --completed-color: #4b5563; --time-color: #e5e7eb; background: linear-gradient(135deg, #0f172a, #1e293b); }
+    body.persona-theme { --bg-color: #7f1d1d; --card-bg: #991b1b; --border-color: #000000; --text-main: #ffffff; --text-muted: #fca5a5; --accent-color: #000000; --completed-color: #ffffff; --time-color: #000000; background: #dc2626; }
+    body.batman-theme { --bg-color: #000000; --card-bg: #111111; --border-color: #facc15; --text-main: #ffffff; --text-muted: #9ca3af; --accent-color: #facc15; --completed-color: #374151; --time-color: #fef08a; background: linear-gradient(135deg, #000000, #1f2937); }
+    body.stranger-theme { --bg-color: #1e1b4b; --card-bg: #312e81; --border-color: #ef4444; --text-main: #ffffff; --text-muted: #a5b4fc; --accent-color: #ef4444; --completed-color: #3b82f6; --time-color: #fca5a5; background: linear-gradient(135deg, #1e1b4b, #000000); }
+    body.dbz-theme { --bg-color: #7c2d12; --card-bg: #9a3412; --border-color: #facc15; --text-main: #ffffff; --text-muted: #fdba74; --accent-color: #facc15; --completed-color: #3b82f6; --time-color: #fef08a; background: linear-gradient(135deg, #ea580c, #9a3412); }
+    body.potter-theme { --bg-color: #1e1b4b; --card-bg: #2e1065; --border-color: #d4af37; --text-main: #f3f4f6; --text-muted: #a78bfa; --accent-color: #d4af37; --completed-color: #4c1d95; --time-color: #fde047; background: linear-gradient(135deg, #172554, #2e1065); }
+    body.lotr-theme { --bg-color: #14532d; --card-bg: #166534; --border-color: #d4af37; --text-main: #fef3c7; --text-muted: #86efac; --accent-color: #d4af37; --completed-color: #064e3b; --time-color: #fde047; background: linear-gradient(135deg, #064e3b, #14532d); }
+
+    body[class$="-theme"] .bg-base, body[class$="-theme"] .bg-interactive { display: none; }
+    body[class$="-theme"] h1 { color: var(--border-color); text-shadow: 2px 2px 0px var(--accent-color); font-weight: 800; }
+    body[class$="-theme"] .progress-bar-fill { background: linear-gradient(90deg, var(--accent-color), var(--completed-color)); }
+
+    /* --- Base Layout --- */
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+    body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; padding: max(2rem, env(safe-area-inset-top)) 1rem max(2rem, env(safe-area-inset-bottom)); transition: background 0.4s ease, background-color 0.4s ease; overscroll-behavior-y: none; }
+    .container { width: 100%; max-width: 650px; display: flex; flex-direction: column; gap: 1.5rem; z-index: 1; }
+    h1, .progress-text, button, .toggle-link, .username, .user-email { user-select: none; -webkit-user-select: none; }
+
+    /* --- Profiles & Buttons --- */
+    .profile-header { background-color: var(--card-bg); padding: 1rem 1.5rem; border-radius: 16px; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); transition: all 0.3s ease; }
+    .avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; background-color: var(--bg-color); border: 2px solid var(--accent-color); }
+    .user-info { flex: 1; }
+    .username { font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
+    .user-email { font-size: 0.85rem; color: var(--text-muted); }
+    .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-size: 0.85rem; transition: all 0.2s; }
+    .btn-outline:hover, .btn-outline:active { background: var(--border-color); }
+    .btn-danger { color: #ef4444; border-color: #ef4444; }
+    .btn-danger:hover { background: #ef4444; color: white; }
+    .flex-row { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 1rem; }
+
+    /* --- UI Modals --- */
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 1rem; transition: opacity 0.3s ease; }
+    .modal-card { background-color: var(--card-bg); padding: 2rem; border-radius: 16px; border: 1px solid var(--border-color); width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 1rem; max-height: 90vh; overflow-y: auto; }
+    .modal-card h2 { text-align: center; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
+    input[type="text"].auth-input, input[type="email"].auth-input, input[type="password"] { width: 100%; background-color: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.85rem; border-radius: 8px; font-size: 1rem; outline: none; -webkit-appearance: none; }
+    input:focus, select:focus { border-color: var(--accent-color); }
+    select.settings-select { width: 100%; background-color: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.75rem; border-radius: 8px; font-size: 0.95rem; outline: none; margin-top: 0.5rem; }
+    input[type="url"].settings-select { width: 100%; background-color: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.75rem; border-radius: 8px; font-size: 0.95rem; outline: none; margin-top: 0.5rem; }
+    .toggle-link { text-align: center; font-size: 0.85rem; color: var(--time-color); cursor: pointer; margin-top: 0.25rem; padding: 0.5rem; }
+    
+    /* Strict override to completely fix the double-card glitch */
+    .hidden { display: none !important; }
+
+    /* --- Toggle Switches --- */
+    .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.95rem; }
+    .setting-row:last-child { border-bottom: none; }
+    .switch { position: relative; display: inline-block; width: 46px; height: 26px; flex-shrink: 0;}
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--bg-color); transition: .3s; border-radius: 34px; border: 1px solid var(--border-color); }
+    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: var(--text-muted); transition: .3s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--completed-color); border-color: var(--completed-color); }
+    input:checked + .slider:before { transform: translateX(20px); background-color: white; }
+    input[type=range] { -webkit-appearance: none; width: 100px; background: transparent; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: var(--accent-color); cursor: pointer; margin-top: -6px; }
+    input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: var(--bg-color); border-radius: 2px; border: 1px solid var(--border-color); }
+
+    /* --- Global Dynamic Countdown Widget --- */
+    .global-countdown-widget { border: 2px solid var(--accent-color); border-radius: 12px; padding: 1.25rem; text-align: center; background-color: var(--card-bg); box-shadow: 0 0 15px rgba(0,0,0,0.2); animation: pulseWidget 3s infinite alternate; }
+    .widget-title { color: var(--accent-color); font-weight: 800; font-size: 0.9rem; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 0.5rem; }
+    .widget-timer { color: var(--text-main); font-size: 1.75rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    @keyframes pulseWidget { from { box-shadow: 0 0 5px var(--bg-color); } to { box-shadow: 0 0 15px var(--accent-color); } }
+
+    /* Header & Progress */
+    header { background-color: var(--card-bg); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 1rem; transition: all 0.3s ease; }
+    .header-top { display: flex; justify-content: space-between; align-items: center; }
+    .header-top h1 { font-size: 1.5rem; font-weight: 700; flex: 1; transition: all 0.3s ease; }
+    .icon-btn { background: none; border: none; color: var(--text-muted); font-size: 1.25rem; cursor: pointer; padding: 0.5rem; border-radius: 50%; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
+    .icon-btn:hover, .icon-btn:active { background: var(--bg-color); color: var(--text-main); }
+    .date-picker-wrapper { display: flex; align-items: center; gap: 0.5rem; background: var(--bg-color); padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); }
+    .date-picker-wrapper input[type="date"] { background: transparent; border: none; color: var(--text-main); font-size: 1rem; outline: none; color-scheme: dark; cursor: pointer; padding: 0; }
+    .progress-container { display: flex; flex-direction: column; gap: 0.5rem; }
+    .progress-text { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); }
+    .progress-bar-bg { height: 8px; background-color: var(--bg-color); border-radius: 4px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent-color), var(--completed-color)); transition: width 0.3s ease, background 0.4s ease; }
+
+    /* Add Task Form */
+    .add-task-card { background-color: var(--card-bg); padding: 1.25rem; border-radius: 16px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 0.75rem; transition: all 0.3s ease; }
+    .input-row { display: flex; gap: 0.5rem; flex-direction: row; }
+    input[type="text"].task-input { background-color: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.75rem; border-radius: 8px; font-size: 0.95rem; outline: none; }
+    .btn-primary { background-color: var(--accent-color); color: white; border: none; padding: 0.85rem 1.25rem; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; transition: background-color 0.2s; width: 100%; }
+    .btn-primary:active { transform: scale(0.98); }
+
+    /* Task List */
+    .task-list { display: flex; flex-direction: column; gap: 0.75rem; padding-bottom: env(safe-area-inset-bottom); }
+    .task-item { background-color: var(--card-bg); padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 1rem; transition: transform 0.1s, border-color 0.2s, opacity 0.3s ease, padding 0.3s ease; }
+    .task-item.completed { opacity: 0.6; }
+    .task-item.completed .task-text { text-decoration: line-through; color: var(--text-muted); }
+    .checkbox { width: 28px; height: 28px; border-radius: 8px; border: 2px solid var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
+    .task-item.completed .checkbox { background-color: var(--completed-color); border-color: var(--completed-color); }
+    .checkbox::after { content: '✓'; color: white; font-size: 16px; display: none; }
+    .task-item.completed .checkbox::after { display: block; }
+    .task-details { flex: 1; display: flex; flex-direction: column; gap: 0.25rem; }
+    .task-time { font-size: 0.85rem; color: var(--time-color); font-weight: 600; }
+    .task-text { font-size: 1rem; color: var(--text-main); word-break: break-word; }
+    .btn-delete { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem; padding: 0.5rem; border-radius: 4px; transition: color 0.2s; }
+    .btn-delete:active { color: var(--danger-color); }
+    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-muted); background-color: var(--card-bg); border-radius: 16px; border: 1px dashed var(--border-color); }
+
+    /* Compact Mode Overrides */
+    body.compact-mode .task-item { padding: 0.6rem 1rem; }
+    body.compact-mode .checkbox { width: 22px; height: 22px; }
+    body.compact-mode .task-time { font-size: 0.75rem; }
+    body.compact-mode .task-text { font-size: 0.9rem; }
+    body.compact-mode .profile-header { padding: 0.75rem 1rem; }
+    body.compact-mode header { padding: 1rem; }
+
+    @media (max-width: 600px) {
+      .input-row { flex-direction: column; }
+      .header-top { flex-wrap: wrap; gap: 0.75rem; }
+      .date-picker-wrapper { flex: 1; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background Layers -->
+  <div class="bg-base"></div>
+  <div class="bg-interactive" id="bg-interactive"></div>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <h2><span>⚙️ Settings</span><button class="icon-btn" id="close-settings-btn">✕</button></h2>
+      
+      <div style="font-size: 0.85rem; color: var(--accent-color); font-weight: 700; margin-top: 0.5rem; text-transform: uppercase;">App Theme</div>
+      <div>
+        <select id="theme-selector" class="settings-select">
+          <option value="auto">Auto (Based on Date)</option>
+          <option value="default">Default Dark</option>
+          <option value="gta-theme">GTA VI (Vice City)</option>
+          <option value="fortnite-theme">Fortnite</option>
+          <option value="rdr2-theme">Red Dead Redemption</option>
+          <option value="roblox-theme">Roblox</option>
+          <option value="spiderman-theme">Spider-Man</option>
+          <option value="wolverine-theme">Wolverine</option>
+          <option value="doomsday-theme">Avengers: Doomsday</option>
+          <option value="batman-theme">Batman</option>
+          <option value="starwars-theme">Star Wars</option>
+          <option value="minecraft-theme">Minecraft</option>
+          <option value="mario-theme">Super Mario</option>
+          <option value="zelda-theme">Zelda</option>
+          <option value="pokemon-theme">Pokémon</option>
+          <option value="halo-theme">Halo</option>
+          <option value="fallout-theme">Fallout</option>
+          <option value="skyrim-theme">Skyrim</option>
+          <option value="persona-theme">Persona 5</option>
+          <option value="cyberpunk-theme">Cyberpunk 2077</option>
+          <option value="matrix-theme">The Matrix</option>
+          <option value="stranger-theme">Stranger Things</option>
+          <option value="dbz-theme">Dragon Ball Z</option>
+          <option value="potter-theme">Harry Potter</option>
+          <option value="lotr-theme">Lord of the Rings</option>
+        </select>
+      </div>
+
+      <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 0.5rem 0;">
+      
+      <div style="font-size: 0.85rem; color: var(--accent-color); font-weight: 700; margin-top: 0.5rem; text-transform: uppercase;">Preferences</div>
+
+      <div class="setting-row">
+        <div>
+          <div style="font-weight: 600;">Play Like a Prayer</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">Stream background track</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <input type="range" id="music-volume" min="0" max="1" step="0.05" value="0.3" title="Volume">
+          <label class="switch"><input type="checkbox" id="toggle-music"><span class="slider"></span></label>
+        </div>
+      </div>
+      
+      <div style="margin-top: -0.25rem; margin-bottom: 0.5rem;">
+        <input type="url" id="custom-music-url" class="settings-select" placeholder="Paste direct MP3 URL here (Optional)...">
+      </div>
+
+      <div class="setting-row">
+        <div>
+          <div style="font-weight: 600;">UI Sounds</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">Play sounds on check/uncheck</div>
+        </div>
+        <label class="switch"><input type="checkbox" id="toggle-sounds" checked><span class="slider"></span></label>
+      </div>
+
+      <div class="setting-row">
+        <div>
+          <div style="font-weight: 600;">Compact Mode</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">Shrinks UI elements for busy days</div>
+        </div>
+        <label class="switch"><input type="checkbox" id="toggle-compact"><span class="slider"></span></label>
+      </div>
+
+      <div class="setting-row">
+        <div>
+          <div style="font-weight: 600;">Zen Mode</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">Auto-hide completed tasks</div>
+        </div>
+        <label class="switch"><input type="checkbox" id="toggle-hide-completed"><span class="slider"></span></label>
+      </div>
+
+      <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 0.5rem 0;">
+      
+      <div style="font-size: 0.85rem; color: var(--accent-color); font-weight: 700; margin-top: 0.5rem; text-transform: uppercase;">Data & Extras</div>
+      
+      <div class="setting-row">
+        <div>
+          <div style="font-weight: 600;">Global Countdown</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">Pin a timer to your dashboard</div>
+        </div>
+        <select id="countdown-selector" class="settings-select" style="width: 130px; margin-top:0;">
+          <option value="none">None</option>
+          <option value="gta6">GTA VI</option>
+          <option value="halloween">Halloween</option>
+          <option value="christmas">Christmas</option>
+          <option value="newyear">New Year 2027</option>
+        </select>
+      </div>
+
+      <div class="setting-row">
+        <div>
+          <div style="font-weight: 600;">Import / Export (JSON)</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">Backup or transfer schedules</div>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button class="btn-outline" id="export-btn" style="padding: 0.35rem 0.5rem;">Export</button>
+          <button class="btn-outline" id="import-btn-ui" style="padding: 0.35rem 0.5rem;">Import</button>
+          <input type="file" id="import-file" accept=".json" style="display: none;">
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div>
+          <div style="font-weight: 600;">Clear Day Data</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">Erase all tasks for selected date</div>
+        </div>
+        <button class="btn-outline btn-danger" id="clear-data-btn" style="padding: 0.35rem 0.75rem;">🗑️ Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Authentication Modal (Username Based) -->
+  <div id="auth-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <h2 id="modal-title">Log In</h2>
+        <input type="email" id="auth-username" class="auth-input" placeholder="Email address" autocomplete="email">
+      <input type="text" id="reg-avatar" class="auth-input hidden" placeholder="Profile Picture URL (Optional)">
+      
+      <div style="position: relative; width: 100%;">
+        <input type="password" id="auth-password" class="auth-input" placeholder="Password (at least 6 characters)" autocomplete="current-password" style="padding-right: 2.5rem;">
+        <button id="toggle-password-btn" type="button" style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 1.2rem;" title="Show Password">👁️</button>
+      </div>
+
+        <button class="btn-primary" id="auth-btn">Sign In</button>
+        <button class="btn-outline" id="continue-guest-btn">Continue as Guest</button>
+        <button class="btn-outline" id="close-auth-btn">Cancel</button>
+      <div class="toggle-link" id="auth-toggle">Need an account? Register here.</div>
+      <p id="auth-error" style="color: var(--danger-color); font-size: 0.85rem; text-align: center; margin-top: 0.5rem;"></p>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- User Profile Header -->
+    <div class="profile-header" id="profile-section">
+      <div id="guest-ui" class="flex-row">
+        <div class="user-info">
+          <div class="username">Guest Mode</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">Data strictly saved locally.</div>
+        </div>
+        <button class="btn-outline" id="open-login-btn">Sign In</button>
+      </div>
+      <div id="user-ui" class="flex-row hidden">
+        <div style="display: flex; gap: 1rem; align-items: center;">
+          <img src="https://via.placeholder.com/150" alt="Avatar" class="avatar" id="profile-avatar">
+          <div class="user-info">
+            <div class="username" id="profile-username">Username</div>
+          </div>
+        </div>
+        <button class="btn-outline" id="logout-btn">Log Out</button>
+      </div>
+    </div>
+
+    <!-- Global Dynamic Countdown Widget -->
+    <div id="global-widget-container" class="global-countdown-widget hidden">
+      <div class="widget-title" id="widget-title">Releases In</div>
+      <div class="widget-timer" id="widget-timer-text">00d 00h 00m 00s</div>
+    </div>
+
+    <header>
+      <div class="header-top">
+        <h1 id="main-title">🗓️ Daily Schedule</h1>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <div class="date-picker-wrapper"><input type="date" id="schedule-date"></div>
+          <button class="icon-btn" id="open-settings-btn" title="Settings">⚙️</button>
+        </div>
+      </div>
+      <div class="progress-container">
+        <div class="progress-text"><span>Daily Progress</span><span id="progress-percent">0%</span></div>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-fill"></div></div>
+      </div>
+    </header>
+
+    <div class="add-task-card">
+      <div class="input-row">
+        <input type="text" id="task-time" class="task-input" placeholder="Time (e.g. 11:00 AM)" style="flex: 0.4;">
+        <input type="text" id="task-text" class="task-input" placeholder="Activity (e.g. 🎬 Finish Spider-Man)" style="flex: 0.6;">
+      </div>
+      <button class="btn-primary" id="add-btn">Add Activity</button>
+    </div>
+
+    <div class="task-list" id="task-list"></div>
+  </div>
+  
+  <!-- Hidden Audio Player for Custom MP3 URL -->
+  <audio id="custom-audio-player" loop style="display:none;"></audio>
+
+  <script>
+    // --- MOUSE HOVER ANIMATION LOGIC ---
+    const bgInteractive = document.getElementById('bg-interactive');
+    document.addEventListener('mousemove', (e) => {
+      bgInteractive.style.setProperty('--mouse-x', `${e.clientX}px`);
+      bgInteractive.style.setProperty('--mouse-y', `${e.clientY}px`);
+    });
+
+    // --- APP STATE ---
+    let currentUser = null; 
+    const today = new Date().toISOString().split('T')[0];
+    let appSettings = {};
+    let audioCtx;
+    // Add your project's values here. The publishable (anon) key is safe to use in a browser.
+    const SUPABASE_URL = 'https://mhhmvhpeksimylrwvxzl.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_O2-G8NOHWzF0jvhoam1IOw_xK9NoRL1';
+    const supabaseConfigured = !SUPABASE_URL.startsWith('PASTE_') && !SUPABASE_ANON_KEY.startsWith('PASTE_');
+    const supabaseClient = supabaseConfigured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+    function requireSupabase() {
+      if (supabaseConfigured) return true;
+      authError.textContent = 'Cloud sign-in is not connected yet. Add your Supabase URL and publishable key to this file.';
+      return false;
+    }
+    
+    // --- WEB AUDIO API (MP3 Handling) ---
+    const customAudioPlayer = document.getElementById('custom-audio-player');
+
+    function applyMusicState() {
+      if (appSettings.musicEnabled) {
+        if (customAudioPlayer.src !== appSettings.customMusicUrl) {
+          customAudioPlayer.src = appSettings.customMusicUrl;
+        }
+        customAudioPlayer.volume = appSettings.musicVolume;
+        customAudioPlayer.play().catch(e => console.log("Audio play blocked by browser until interacted"));
+      } else {
+        customAudioPlayer.pause();
+      }
+    }
+
+    function playUIBeep() {
+      if(appSettings.enableSounds) {
+        if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+      }
+    }
+
+    // --- EXCLUSIVE GRIDDSTR SCHEDULE ---
+    const griddstrSchedule = [
+      { time: "11:00 AM – 12:00 PM", text: "🎬 Finish Spider-Man (2002)", completed: false },
+      { time: "12:00 PM – 12:45 PM", text: "🍔 Lunch / Break", completed: false },
+      { time: "1:00 PM – 2:00 PM", text: "🎮 PS5", completed: false },
+      { time: "2:00 PM – 4:10 PM", text: "🎬 Spider-Man 2", completed: false },
+      { time: "4:10 PM – 4:40 PM", text: "🥽 Bonelab", completed: false },
+      { time: "4:40 PM – 7:00 PM", text: "🎬 Spider-Man 3", completed: false },
+      { time: "7:00 PM – 7:45 PM", text: "🍕 Dinner", completed: false },
+      { time: "7:45 PM – 8:30 PM", text: "🌍 Pax Historia", completed: false },
+      { time: "8:30 PM – 9:00 PM", text: "🥽 Among Us VR", completed: false },
+      { time: "9:00 PM – 11:15 PM", text: "🎬 The Amazing Spider-Man", completed: false },
+      { time: "11:15 PM – 11:45 PM", text: "🎮 PS5", completed: false },
+      { time: "11:45 PM – 12:15 AM", text: "🥽 Nightclub Simulator VR", completed: false },
+      { time: "12:15 AM – 2:40 AM", text: "🎬 The Amazing Spider-Man 2", completed: false },
+      { time: "2:40 AM", text: "😴 Bed (or head to bed as soon as it ends)", completed: false }
+    ];
+
+    // --- DOM Elements ---
+    const dateInput = document.getElementById('schedule-date');
+    const taskList = document.getElementById('task-list');
+    const taskTimeInput = document.getElementById('task-time');
+    const taskTextInput = document.getElementById('task-text');
+    const addBtn = document.getElementById('add-btn');
+    const progressFill = document.getElementById('progress-fill');
+    const progressPercent = document.getElementById('progress-percent');
+    const mainTitle = document.getElementById('main-title');
+    
+    // Settings DOM
+    const settingsModal = document.getElementById('settings-modal');
+    const openSettingsBtn = document.getElementById('open-settings-btn');
+    const closeSettingsBtn = document.getElementById('close-settings-btn');
+    const themeSelector = document.getElementById('theme-selector');
+    const musicToggle = document.getElementById('toggle-music');
+    const musicVolume = document.getElementById('music-volume');
+    const customMusicUrl = document.getElementById('custom-music-url');
+    const soundToggle = document.getElementById('toggle-sounds');
+    const compactToggle = document.getElementById('toggle-compact');
+    const hideCompletedToggle = document.getElementById('toggle-hide-completed');
+    const countdownSelector = document.getElementById('countdown-selector');
+    const exportBtn = document.getElementById('export-btn');
+    const importBtnUi = document.getElementById('import-btn-ui');
+    const importFile = document.getElementById('import-file');
+    const clearDataBtn = document.getElementById('clear-data-btn');
+    
+    const widgetContainer = document.getElementById('global-widget-container');
+    const widgetTitle = document.getElementById('widget-title');
+    const widgetTimerText = document.getElementById('widget-timer-text');
+
+    // Auth DOM
+    const authModal = document.getElementById('auth-modal');
+    const authBtn = document.getElementById('auth-btn');
+    const continueGuestBtn = document.getElementById('continue-guest-btn');
+    const openLoginBtn = document.getElementById('open-login-btn');
+    const closeAuthBtn = document.getElementById('close-auth-btn');
+    const authToggle = document.getElementById('auth-toggle');
+    const usernameInput = document.getElementById('auth-username');
+    const passInput = document.getElementById('auth-password');
+    const togglePasswordBtn = document.getElementById('toggle-password-btn');
+    const regAvatar = document.getElementById('reg-avatar');
+    const authError = document.getElementById('auth-error');
+    const modalTitle = document.getElementById('modal-title');
+    
+    const guestUi = document.getElementById('guest-ui');
+    const userUi = document.getElementById('user-ui');
+    const profileAvatar = document.getElementById('profile-avatar');
+    const profileUsername = document.getElementById('profile-username');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    dateInput.value = today;
+    let selectedDate = dateInput.value;
+    let isLoginMode = true;
+
+    // --- SETTINGS & ISOLATION LOGIC ---
+    function getStorageKeyPrefix() { return currentUser ? currentUser.usernameKey : 'guest_local'; }
+
+    async function loadSettings() {
+      const defaultSettings = { 
+        hideCompleted: false, activeCountdown: 'none', enableSounds: true, compactMode: false, 
+        activeTheme: 'auto', musicEnabled: false, musicVolume: 0.3, 
+        customMusicUrl: 'https://www.dropbox.com/scl/fi/nlk8kj1wfbz9wdqzs1nh9/Like-a-Prayer.mp3?rlkey=b9nwtzss4ouevzxjgowlzc1rk&st=hluta45k&dl=1' 
+      };
+      if (currentUser && supabaseClient) {
+        const { data, error } = await supabaseClient.from('planner_settings').select('settings').eq('user_id', currentUser.id).maybeSingle();
+        if (error) { console.error('Could not load cloud settings:', error.message); appSettings = defaultSettings; }
+        else appSettings = { ...defaultSettings, ...(data?.settings || {}) };
+      } else {
+        appSettings = JSON.parse(localStorage.getItem('app_settings_' + getStorageKeyPrefix())) || defaultSettings;
+      }
+      if(!appSettings.customMusicUrl && appSettings.customMusicUrl !== "") {
+         appSettings.customMusicUrl = 'https://www.dropbox.com/scl/fi/nlk8kj1wfbz9wdqzs1nh9/Like-a-Prayer.mp3?rlkey=b9nwtzss4ouevzxjgowlzc1rk&st=hluta45k&dl=1';
+      }
+    }
+
+    function initSettingsUI() {
+      themeSelector.value = appSettings.activeTheme || 'auto';
+      musicToggle.checked = appSettings.musicEnabled;
+      musicVolume.value = appSettings.musicVolume;
+      customMusicUrl.value = appSettings.customMusicUrl || '';
+      soundToggle.checked = appSettings.enableSounds;
+      compactToggle.checked = appSettings.compactMode;
+      hideCompletedToggle.checked = appSettings.hideCompleted;
+      countdownSelector.value = appSettings.activeCountdown || 'none';
+      
+      applyCompactMode(); updateWidgetVisibility(); applyMusicState();
+    }
+
+    async function saveSettings() {
+      if (currentUser && supabaseClient) {
+        const { error } = await supabaseClient.from('planner_settings').upsert({ user_id: currentUser.id, settings: appSettings, updated_at: new Date().toISOString() });
+        if (error) alert('Your settings could not be saved to the cloud: ' + error.message);
+      } else {
+        localStorage.setItem('app_settings_' + getStorageKeyPrefix(), JSON.stringify(appSettings));
+      }
+      render();
+    }
+
+    themeSelector.addEventListener('change', (e) => { appSettings.activeTheme = e.target.value; saveSettings(); });
+    musicToggle.addEventListener('change', (e) => { appSettings.musicEnabled = e.target.checked; applyMusicState(); saveSettings(); });
+    musicVolume.addEventListener('input', (e) => { appSettings.musicVolume = parseFloat(e.target.value); if(customAudioPlayer) customAudioPlayer.volume = appSettings.musicVolume; saveSettings(); });
+    customMusicUrl.addEventListener('input', (e) => { appSettings.customMusicUrl = e.target.value.trim(); saveSettings(); if(appSettings.musicEnabled) applyMusicState(); });
+    soundToggle.addEventListener('change', (e) => { appSettings.enableSounds = e.target.checked; saveSettings(); });
+    compactToggle.addEventListener('change', (e) => { appSettings.compactMode = e.target.checked; applyCompactMode(); saveSettings(); });
+    hideCompletedToggle.addEventListener('change', (e) => { appSettings.hideCompleted = e.target.checked; saveSettings(); });
+    countdownSelector.addEventListener('change', (e) => { appSettings.activeCountdown = e.target.value; updateWidgetVisibility(); saveSettings(); });
+
+    function applyCompactMode() {
+      if(appSettings.compactMode) document.body.classList.add('compact-mode');
+      else document.body.classList.remove('compact-mode');
+    }
+
+    // --- IMPORT / EXPORT (JSON) ---
+    exportBtn.addEventListener('click', async () => {
+      const tasks = await loadTasks();
+      if(tasks.length === 0) { alert("Nothing to export!"); return; }
+      const blob = new Blob([JSON.stringify(tasks, null, 2)], {type: "application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `Schedule_${selectedDate}.json`;
+      a.click(); URL.revokeObjectURL(url);
+    });
+
+    importBtnUi.addEventListener('click', () => importFile.click());
+    importFile.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async function(event) {
+        try {
+          const importedTasks = JSON.parse(event.target.result);
+          if (Array.isArray(importedTasks)) { await saveTasks(importedTasks); alert("Schedule imported perfectly!"); } 
+          else { alert("Invalid JSON format."); }
+        } catch(err) { alert("Error reading file."); }
+      };
+      reader.readAsText(file);
+      importFile.value = ''; 
+    });
+
+    clearDataBtn.addEventListener('click', async () => {
+      if(confirm(`Are you sure you want to delete all activities for ${selectedDate}?`)) {
+        await saveTasks([]);
+      }
+    });
+
+    // --- DYNAMIC COUNTDOWN WIDGET ---
+    function updateWidgetVisibility() {
+      if (appSettings.activeCountdown !== 'none') widgetContainer.classList.remove('hidden');
+      else widgetContainer.classList.add('hidden');
+      updateWidgetTimer();
+    }
+
+    function updateWidgetTimer() {
+      if (appSettings.activeCountdown === 'none') return;
+      
+      let targetDate, title, color;
+      const now = new Date().getTime();
+      
+      if (appSettings.activeCountdown === 'gta6') {
+        targetDate = new Date("2026-11-19T00:00:00").getTime(); title = "GTA VI Releases In"; color = "#ff59c7";
+      } else if (appSettings.activeCountdown === 'halloween') {
+        const currentYear = new Date().getFullYear();
+        targetDate = new Date(`${currentYear}-10-31T00:00:00`).getTime();
+        if(now > targetDate) targetDate = new Date(`${currentYear+1}-10-31T00:00:00`).getTime();
+        title = "Halloween Is In"; color = "#f97316"; 
+      } else if (appSettings.activeCountdown === 'christmas') {
+        const currentYear = new Date().getFullYear();
+        targetDate = new Date(`${currentYear}-12-25T00:00:00`).getTime();
+        if(now > targetDate) targetDate = new Date(`${currentYear+1}-12-25T00:00:00`).getTime();
+        title = "Christmas Is In"; color = "#22c55e"; 
+      } else if (appSettings.activeCountdown === 'newyear') {
+        targetDate = new Date("2027-01-01T00:00:00").getTime(); title = "2027 Arrives In"; color = "#38bdf8"; 
+      }
+
+      widgetTitle.textContent = title;
+      widgetContainer.style.borderColor = color;
+      widgetTitle.style.color = color;
+      widgetContainer.style.boxShadow = `0 0 15px ${color}40`; 
+
+      const diff = targetDate - now;
+      if (diff < 0) { widgetTimerText.textContent = "IT IS HERE!!! 🎉"; return; }
+
+      const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const s = Math.floor((diff % (1000 * 60)) / 1000);
+      widgetTimerText.textContent = `${d}d ${h.toString().padStart(2, '0')}h ${m.toString().padStart(2, '0')}m ${s.toString().padStart(2, '0')}s`;
+    }
+    setInterval(updateWidgetTimer, 1000);
+
+    openSettingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
+    closeSettingsBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
+
+    // --- AUTHENTICATION LOGIC (USERNAME BASED) ---
+    openLoginBtn.addEventListener('click', () => { authModal.classList.remove('hidden'); authError.textContent = ''; });
+    closeAuthBtn.addEventListener('click', () => { authModal.classList.add('hidden'); passInput.type = 'password'; togglePasswordBtn.textContent = '👁️'; });
+
+    togglePasswordBtn.addEventListener('click', () => {
+      if(passInput.type === 'password') { passInput.type = 'text'; togglePasswordBtn.textContent = '🙈'; } 
+      else { passInput.type = 'password'; togglePasswordBtn.textContent = '👁️'; }
+    });
+
+    function toggleAuthMode() {
+      isLoginMode = !isLoginMode;
+      authError.textContent = '';
+      if (isLoginMode) {
+        modalTitle.textContent = "Log In"; authBtn.textContent = "Sign In"; authToggle.textContent = "Need an account? Register here.";
+        regAvatar.classList.add('hidden');
+      } else {
+        modalTitle.textContent = "Create Account"; authBtn.textContent = "Register"; authToggle.textContent = "Already have an account? Log in.";
+        regAvatar.classList.remove('hidden');
+      }
+    }
+
+    async function handleAuth() {
+      const email = usernameInput.value.trim().toLowerCase();
+      const password = passInput.value;
+      const avatar = regAvatar.value.trim() || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + encodeURIComponent(email);
+      if (!requireSupabase() || !email || !password) { if (!email || !password) authError.textContent = 'Email and password are required.'; return; }
+      if (!isLoginMode && password.length < 6) { authError.textContent = 'Use a password with at least 6 characters.'; return; }
+
+      authBtn.disabled = true;
+      authBtn.textContent = isLoginMode ? 'Signing in…' : 'Creating account…';
+      let result;
+      if (isLoginMode) result = await supabaseClient.auth.signInWithPassword({ email, password });
+      else result = await supabaseClient.auth.signUp({ email, password, options: { data: { avatar_url: avatar } } });
+      authBtn.disabled = false;
+      authBtn.textContent = isLoginMode ? 'Sign In' : 'Register';
+      if (result.error) { authError.textContent = result.error.message; return; }
+      if (!result.data.session) {
+        authError.textContent = 'Account created. Check your email to confirm it, then sign in.';
+        return;
+      }
+      await logInUser(result.data.user);
+    }
+
+    async function logInUser(user) {
+      customAudioPlayer.pause();
+      currentUser = user;
+      
+      authModal.classList.add('hidden'); 
+      guestUi.classList.add('hidden'); 
+      userUi.classList.remove('hidden');
+      profileUsername.textContent = user.email; 
+      profileAvatar.src = user.user_metadata?.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + encodeURIComponent(user.email);
+      
+      passInput.value = ''; passInput.type = 'password'; togglePasswordBtn.textContent = '👁️';
+      
+      await loadSettings(); initSettingsUI(); render(); 
+    }
+
+    async function checkActiveSession() {
+      const { data } = supabaseClient ? await supabaseClient.auth.getSession() : { data: { session: null } };
+      if (data.session?.user) {
+        currentUser = data.session.user;
+        guestUi.classList.add('hidden'); 
+        userUi.classList.remove('hidden');
+        profileUsername.textContent = currentUser.email; 
+        profileAvatar.src = currentUser.user_metadata?.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + encodeURIComponent(currentUser.email);
+      } else {
+        userUi.classList.add('hidden'); 
+        guestUi.classList.remove('hidden');
+        authModal.classList.remove('hidden');
+      }
+      await loadSettings(); initSettingsUI(); render(); 
+    }
+
+    async function logOut() {
+      customAudioPlayer.pause();
+      if (supabaseClient) await supabaseClient.auth.signOut();
+      currentUser = null;
+      userUi.classList.add('hidden'); 
+      guestUi.classList.remove('hidden');
+      usernameInput.value = ''; passInput.value = '';
+      
+      await loadSettings(); initSettingsUI(); render(); 
+    }
+
+    // --- DATA MANAGEMENT ---
+    function getStorageKey(date) { return `schedule_${getStorageKeyPrefix()}_${date}`; }
+
+    async function loadTasks() {
+      if (currentUser && supabaseClient) {
+        const { data, error } = await supabaseClient.from('planner_days').select('tasks').eq('user_id', currentUser.id).eq('day', selectedDate).maybeSingle();
+        if (error) { console.error('Could not load cloud schedule:', error.message); return []; }
+        return data?.tasks || [];
+      }
+      const data = localStorage.getItem(getStorageKey(selectedDate));
+      if (data) return JSON.parse(data);
+      
+      if (selectedDate === '2026-11-19') {
+        const sched = [{ time: "12:00 AM", text: "🌴 GRAND THEFT AUTO VI RELEASE!!! 🚗", completed: false }, { time: "12:01 AM – 11:59 PM", text: "🎮 Play GTA 6 Non-Stop", completed: false }];
+        localStorage.setItem(getStorageKey(selectedDate), JSON.stringify(sched)); return sched;
+      }
+      if (selectedDate === '2026-12-18') {
+        const sched = [{ time: "Evening", text: "🍿 Premiere of Avengers: Doomsday", completed: false }];
+        localStorage.setItem(getStorageKey(selectedDate), JSON.stringify(sched)); return sched;
+      }
+      if (selectedDate === '2026-10-01') { 
+        const sched = [{ time: "12:00 AM", text: "🎮 Fire up the PS5 for Marvel's Wolverine Unleashed! 🔪", completed: false }];
+        localStorage.setItem(getStorageKey(selectedDate), JSON.stringify(sched)); return sched;
+      }
+      
+      if (selectedDate === today && currentUser && currentUser.usernameKey === 'griddstr') {
+        localStorage.setItem(getStorageKey(today), JSON.stringify(griddstrSchedule)); return griddstrSchedule;
+      }
+      
+      return []; 
+    }
+
+    async function saveTasks(tasks) {
+      if (currentUser && supabaseClient) {
+        const { error } = await supabaseClient.from('planner_days').upsert({ user_id: currentUser.id, day: selectedDate, tasks, updated_at: new Date().toISOString() });
+        if (error) { alert('Your schedule could not be saved to the cloud: ' + error.message); return; }
+      } else {
+        localStorage.setItem(getStorageKey(selectedDate), JSON.stringify(tasks));
+      }
+      render();
+    }
+
+    // --- SCHEDULE RENDER LOGIC ---
+    async function render() {
+      document.body.className = appSettings.compactMode ? 'compact-mode' : '';
+      let titleText = "🗓️ Daily Schedule";
+
+      if (appSettings.activeTheme !== 'auto' && appSettings.activeTheme !== 'default') {
+        document.body.classList.add(appSettings.activeTheme);
+        const titles = {
+          'gta-theme': "🌴 Vice City Schedule", 'doomsday-theme': "🟢 Doom's Schedule", 'wolverine-theme': "🐺 Weapon X Schedule",
+          'spiderman-theme': "🕸️ Spidey Schedule", 'cyberpunk-theme': "🤖 Night City Planner", 'matrix-theme': "01101 Planner",
+          'fortnite-theme': "🪂 Battle Bus Schedule", 'rdr2-theme': "🤠 Outlaw Planner", 'roblox-theme': "🟥 Roblox Planner",
+          'starwars-theme': "🌌 Jedi Schedule", 'minecraft-theme': "⛏️ Crafting Planner", 'mario-theme': "🍄 Mushroom Kingdom",
+          'zelda-theme': "🗡️ Hyrule Planner", 'pokemon-theme': "⚡ Pokédex Schedule", 'halo-theme': "🛡️ Spartan Planner",
+          'fallout-theme': "☢️ Pip-Boy Schedule", 'skyrim-theme': "🐉 Dragonborn Planner", 'persona-theme': "🎭 Phantom Planner",
+          'batman-theme': "🦇 Gotham Schedule", 'stranger-theme': "🚲 Upside Down Planner", 'dbz-theme': "🐉 Saiyan Schedule",
+          'potter-theme': "⚡ Hogwarts Planner", 'lotr-theme': "💍 Middle-earth Schedule"
+        };
+        titleText = titles[appSettings.activeTheme] || titleText;
+      } else if (appSettings.activeTheme === 'auto') {
+        if (selectedDate === '2026-11-19') { document.body.classList.add('gta-theme'); titleText = "🌴 Vice City Schedule"; } 
+        else if (selectedDate === '2026-12-18') { document.body.classList.add('doomsday-theme'); titleText = "🟢 Doom's Schedule"; } 
+        else if (selectedDate === '2026-10-01') { document.body.classList.add('wolverine-theme'); titleText = "🐺 Weapon X Schedule"; }
+      }
+      mainTitle.textContent = titleText;
+
+      const tasks = await loadTasks();
+      taskList.innerHTML = '';
+      let visibleTasks = 0;
+      let completedCount = 0;
+
+      tasks.forEach((task, index) => {
+        if (task.completed) completedCount++;
+        if (appSettings.hideCompleted && task.completed) return;
+        
+        visibleTasks++;
+        const taskEl = document.createElement('div');
+        taskEl.className = `task-item ${task.completed ? 'completed' : ''}`;
+        taskEl.innerHTML = `
+          <div class="checkbox" onclick="toggleTask(${index})"></div>
+          <div class="task-details">
+            ${task.time ? `<div class="task-time">${escapeHtml(task.time)}</div>` : ''}
+            <div class="task-text">${escapeHtml(task.text)}</div>
+          </div>
+          <button class="btn-delete" onclick="deleteTask(${index})" title="Delete Task">✕</button>
+        `;
+        taskList.appendChild(taskEl);
+      });
+
+      if (visibleTasks === 0 && tasks.length > 0) { taskList.innerHTML = `<div class="empty-state">🎉 You finished all your activities!</div>`; } 
+      else if (tasks.length === 0) { taskList.innerHTML = `<div class="empty-state">No activities planned for this day yet. Add one above!</div>`; }
+
+      updateProgress(completedCount, tasks.length);
+    }
+
+    function updateProgress(completed, total) {
+      const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
+      progressFill.style.width = `${percent}%`; progressPercent.textContent = `${percent}%`;
+    }
+
+    async function addTask() {
+      const text = taskTextInput.value.trim(); const time = taskTimeInput.value.trim();
+      if (!text) return;
+      const tasks = await loadTasks(); tasks.push({ time, text, completed: false }); await saveTasks(tasks);
+      taskTextInput.value = ''; taskTimeInput.value = ''; taskTextInput.focus();
+    }
+
+    async function toggleTask(index) {
+      const tasks = await loadTasks(); const wasCompleted = tasks[index].completed; tasks[index].completed = !wasCompleted;
+      if(!wasCompleted) playUIBeep();
+      await saveTasks(tasks);
+    }
+
+    async function deleteTask(index) { const tasks = await loadTasks(); tasks.splice(index, 1); await saveTasks(tasks); }
+    function escapeHtml(string) { return string.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
+
+    // --- Event Listeners ---
+    authToggle.addEventListener('click', toggleAuthMode);
+    authBtn.addEventListener('click', handleAuth);
+    continueGuestBtn.addEventListener('click', async () => { authModal.classList.add('hidden'); await loadSettings(); initSettingsUI(); render(); });
+    logoutBtn.addEventListener('click', logOut);
+    addBtn.addEventListener('click', addTask);
+    
+    [taskTextInput, taskTimeInput].forEach(input => { input.addEventListener('keypress', (e) => { if (e.key === 'Enter') addTask(); }); });
+    dateInput.addEventListener('change', (e) => { selectedDate = e.target.value; render(); });
+
+    // Global interaction listener for browser autoplay policies
+    document.body.addEventListener('click', () => {
+        if(appSettings.musicEnabled && customAudioPlayer.paused) {
+            customAudioPlayer.play().catch(e => console.log("Still blocked or path invalid."));
+        }
+    }, { once: true });
+
+    // Boot up
+    checkActiveSession(); 
+  </script>
+</body>
+</html>
