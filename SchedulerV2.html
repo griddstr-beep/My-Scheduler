@@ -407,10 +407,22 @@
       'Attention.mp3'
     ];
     let currentTrackIndex = 0;
+    let shuffledPlaylist = [];
+
+    function shufflePlaylist() {
+      // Fisher-Yates shuffle so every song plays once before any repeats
+      shuffledPlaylist = [...playlist];
+      for (let i = shuffledPlaylist.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffledPlaylist[i], shuffledPlaylist[j]] = [shuffledPlaylist[j], shuffledPlaylist[i]];
+      }
+      currentTrackIndex = 0;
+    }
+    shufflePlaylist(); // randomize order (including the first track) on load
 
     function applyMusicState() {
       if (appSettings.musicEnabled) {
-        const targetSrc = playlist[currentTrackIndex];
+        const targetSrc = shuffledPlaylist[currentTrackIndex];
         if (!customAudioPlayer.src.endsWith(targetSrc)) {
           customAudioPlayer.src = targetSrc;
           customAudioPlayer.load();
@@ -423,7 +435,10 @@
     }
 
     customAudioPlayer.addEventListener('ended', () => {
-      currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
+      currentTrackIndex++;
+      if (currentTrackIndex >= shuffledPlaylist.length) {
+        shufflePlaylist(); // finished the bag, reshuffle for the next round
+      }
       applyMusicState();
     });
 
