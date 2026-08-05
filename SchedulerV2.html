@@ -217,17 +217,13 @@
 
       <div class="setting-row">
         <div>
-          <div style="font-weight: 600;">Play Like a Prayer</div>
-          <div style="font-size: 0.75rem; color: var(--text-muted);">Stream background track</div>
+          <div style="font-weight: 600;">Play Background Music</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">Stream playlist</div>
         </div>
         <div style="display: flex; align-items: center; gap: 0.5rem;">
           <input type="range" id="music-volume" min="0" max="1" step="0.05" value="0.3" title="Volume">
           <label class="switch"><input type="checkbox" id="toggle-music"><span class="slider"></span></label>
         </div>
-      </div>
-      
-      <div style="margin-top: -0.25rem; margin-bottom: 0.5rem;">
-        <input type="text" id="custom-music-url" class="settings-select" placeholder="Enter MP3 file name or URL (e.g., Like-a-Prayer.mp3)...">
       </div>
 
       <div class="setting-row">
@@ -366,8 +362,8 @@
     <div class="task-list" id="task-list"></div>
   </div>
   
-  <!-- Hidden Audio Player for Custom MP3 URL -->
-  <audio id="custom-audio-player" loop style="display:none;"></audio>
+  <!-- Hidden Audio Player for Playlist -->
+  <audio id="custom-audio-player" style="display:none;"></audio>
 
   <script>
     // --- MOUSE HOVER ANIMATION LOGIC ---
@@ -396,11 +392,27 @@
     
     // --- WEB AUDIO API (MP3 Handling) ---
     const customAudioPlayer = document.getElementById('custom-audio-player');
+    
+    // ADD YOUR MP3 FILE NAMES HERE:
+    const playlist = [
+      'Like-a-Prayer.mp3',
+      'The Hills.mp3',
+      'Hot Together.mp3'
+      'The Middle.mp3'
+      'Stan.mp3'
+      'Sign Of The Times.mp3'
+      'Fly Me To The Moon.mp3'
+      'Dancin.mp3'
+      'Blinding Lights.mp3'
+      'Attention.mp3'
+    ];
+    let currentTrackIndex = 0;
 
     function applyMusicState() {
       if (appSettings.musicEnabled) {
-        if (customAudioPlayer.src !== appSettings.customMusicUrl && customAudioPlayer.src !== window.location.href + appSettings.customMusicUrl) {
-          customAudioPlayer.src = appSettings.customMusicUrl;
+        const targetSrc = playlist[currentTrackIndex];
+        if (!customAudioPlayer.src.endsWith(targetSrc)) {
+          customAudioPlayer.src = targetSrc;
           customAudioPlayer.load();
         }
         customAudioPlayer.volume = appSettings.musicVolume;
@@ -409,6 +421,11 @@
         customAudioPlayer.pause();
       }
     }
+
+    customAudioPlayer.addEventListener('ended', () => {
+      currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
+      applyMusicState();
+    });
 
     function playUIBeep() {
       if(appSettings.enableSounds) {
@@ -460,7 +477,6 @@
     const themeSelector = document.getElementById('theme-selector');
     const musicToggle = document.getElementById('toggle-music');
     const musicVolume = document.getElementById('music-volume');
-    const customMusicUrl = document.getElementById('custom-music-url');
     const soundToggle = document.getElementById('toggle-sounds');
     const compactToggle = document.getElementById('toggle-compact');
     const hideCompletedToggle = document.getElementById('toggle-hide-completed');
@@ -504,8 +520,7 @@
     async function loadSettings() {
       const defaultSettings = { 
         hideCompleted: false, activeCountdown: 'none', enableSounds: true, compactMode: false, 
-        activeTheme: 'auto', musicEnabled: false, musicVolume: 0.3, 
-        customMusicUrl: 'Like-a-Prayer.mp3' 
+        activeTheme: 'auto', musicEnabled: false, musicVolume: 0.3
       };
       if (currentUser && supabaseClient) {
         const { data, error } = await supabaseClient.from('planner_settings').select('settings').eq('user_id', currentUser.id).maybeSingle();
@@ -514,16 +529,12 @@
       } else {
         appSettings = JSON.parse(localStorage.getItem('app_settings_' + getStorageKeyPrefix())) || defaultSettings;
       }
-      if(!appSettings.customMusicUrl || appSettings.customMusicUrl.includes("dropbox")) {
-         appSettings.customMusicUrl = 'Like-a-Prayer.mp3';
-      }
     }
 
     function initSettingsUI() {
       themeSelector.value = appSettings.activeTheme || 'auto';
       musicToggle.checked = appSettings.musicEnabled;
       musicVolume.value = appSettings.musicVolume;
-      customMusicUrl.value = appSettings.customMusicUrl || '';
       soundToggle.checked = appSettings.enableSounds;
       compactToggle.checked = appSettings.compactMode;
       hideCompletedToggle.checked = appSettings.hideCompleted;
@@ -545,7 +556,6 @@
     themeSelector.addEventListener('change', (e) => { appSettings.activeTheme = e.target.value; saveSettings(); });
     musicToggle.addEventListener('change', (e) => { appSettings.musicEnabled = e.target.checked; applyMusicState(); saveSettings(); });
     musicVolume.addEventListener('input', (e) => { appSettings.musicVolume = parseFloat(e.target.value); if(customAudioPlayer) customAudioPlayer.volume = appSettings.musicVolume; saveSettings(); });
-    customMusicUrl.addEventListener('input', (e) => { appSettings.customMusicUrl = e.target.value.trim(); saveSettings(); if(appSettings.musicEnabled) applyMusicState(); });
     soundToggle.addEventListener('change', (e) => { appSettings.enableSounds = e.target.checked; saveSettings(); });
     compactToggle.addEventListener('change', (e) => { appSettings.compactMode = e.target.checked; applyCompactMode(); saveSettings(); });
     hideCompletedToggle.addEventListener('change', (e) => { appSettings.hideCompleted = e.target.checked; saveSettings(); });
