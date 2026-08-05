@@ -75,6 +75,14 @@
     .btn-danger:hover { background: #ef4444; color: white; }
     .flex-row { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 1rem; }
 
+    /* --- Guest Data Safety Nudge --- */
+    .guest-nudge { background-color: var(--card-bg); border: 1px solid var(--border-color); border-left: 4px solid var(--time-color); border-radius: 12px; padding: 0.85rem 1rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; font-size: 0.85rem; color: var(--text-main); line-height: 1.4; }
+    .link-btn { background: none; border: none; color: var(--time-color); text-decoration: underline; cursor: pointer; font-size: 0.85rem; padding: 0; font-weight: 600; }
+
+    /* --- Save Error Toast --- */
+    .save-toast { position: fixed; bottom: max(1rem, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); background-color: var(--card-bg); border: 1px solid var(--danger-color); border-radius: 12px; padding: 0.75rem 1rem; display: flex; align-items: center; gap: 0.75rem; box-shadow: 0 8px 20px rgba(0,0,0,0.35); z-index: 1100; max-width: 90vw; }
+    .save-toast span { font-size: 0.85rem; color: var(--text-main); }
+
     /* --- UI Modals --- */
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 1rem; transition: opacity 0.3s ease; }
     .modal-card { background-color: var(--card-bg); padding: 2rem; border-radius: 16px; border: 1px solid var(--border-color); width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 1rem; max-height: 90vh; overflow-y: auto; }
@@ -136,6 +144,7 @@
     .drag-handle:active { cursor: grabbing; color: var(--accent-color); }
     
     .checkbox { width: 30px; height: 30px; border-radius: 8px; border: 2px solid var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
+    .checkbox:focus-visible { outline: 2px solid var(--accent-color); outline-offset: 2px; }
     .task-item.completed .checkbox { background-color: var(--completed-color); border-color: var(--completed-color); }
     .checkbox::after { content: '✓'; color: white; font-size: 16px; display: none; }
     .task-item.completed .checkbox::after { display: block; }
@@ -148,6 +157,13 @@
     .btn-delete:active { color: var(--danger-color); }
     .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-muted); background-color: var(--card-bg); border-radius: 16px; border: 1px dashed var(--border-color); }
 
+    /* --- Live Now Highlight & Badges --- */
+    .task-item.live-now { border-color: var(--accent-color); box-shadow: 0 0 14px rgba(0,0,0,0.25), 0 0 0 1px var(--accent-color) inset; }
+    .task-meta-row { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+    .live-badge { background: var(--danger-color); color: #ffffff; font-size: 0.65rem; font-weight: 700; padding: 0.25rem 0.5rem; border-radius: 6px; white-space: nowrap; animation: liveDotPulse 1.6s ease-in-out infinite; }
+    .next-badge { background: var(--bg-color); color: var(--time-color); font-size: 0.65rem; font-weight: 600; padding: 0.25rem 0.5rem; border-radius: 6px; border: 1px solid var(--border-color); white-space: nowrap; }
+    @keyframes liveDotPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
     /* Compact Mode Overrides */
     body.compact-mode .task-item { padding: 0.6rem 0.75rem; }
     body.compact-mode .checkbox { width: 24px; height: 24px; }
@@ -155,11 +171,13 @@
     body.compact-mode .task-text { font-size: 0.95rem; }
     body.compact-mode .profile-header { padding: 0.75rem 1rem; }
     body.compact-mode header { padding: 1rem; }
+    body.compact-mode .live-badge, body.compact-mode .next-badge { font-size: 0.6rem; padding: 0.2rem 0.4rem; }
 
     @media (max-width: 600px) {
       .input-row { flex-direction: column; }
       .header-top { flex-wrap: wrap; gap: 0.75rem; }
       .date-picker-wrapper { flex: 1; justify-content: center; }
+      .guest-nudge { flex-wrap: wrap; }
     }
   </style>
 </head>
@@ -172,7 +190,7 @@
   <!-- Settings Modal -->
   <div id="settings-modal" class="modal-overlay hidden">
     <div class="modal-card">
-      <h2><span>⚙️ Settings</span><button class="icon-btn" id="close-settings-btn">✕</button></h2>
+      <h2><span>⚙️ Settings</span><button class="icon-btn" id="close-settings-btn" aria-label="Close settings">✕</button></h2>
       
       <div style="font-size: 0.85rem; color: var(--accent-color); font-weight: 700; margin-top: 0.5rem; text-transform: uppercase;">App Theme</div>
       <div>
@@ -250,6 +268,22 @@
         <label class="switch"><input type="checkbox" id="toggle-hide-completed"><span class="slider"></span></label>
       </div>
 
+      <div class="setting-row">
+        <div>
+          <div style="font-weight: 600;">Live Now Highlight</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">Highlights today's current task & shows what's next</div>
+        </div>
+        <label class="switch"><input type="checkbox" id="toggle-live-now" checked><span class="slider"></span></label>
+      </div>
+
+      <div class="setting-row">
+        <div>
+          <div style="font-weight: 600;">Task Start Alerts</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">Browser notification 5 min before a task starts</div>
+        </div>
+        <label class="switch"><input type="checkbox" id="toggle-task-notifications"><span class="slider"></span></label>
+      </div>
+
       <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 0.5rem 0;">
       
       <div style="font-size: 0.85rem; color: var(--accent-color); font-weight: 700; margin-top: 0.5rem; text-transform: uppercase;">Data & Extras</div>
@@ -299,7 +333,7 @@
       
       <div style="position: relative; width: 100%;">
         <input type="password" id="auth-password" class="auth-input" placeholder="Password (at least 6 characters)" autocomplete="current-password" style="padding-right: 2.5rem;">
-        <button id="toggle-password-btn" type="button" style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 1.2rem;" title="Show Password">👁️</button>
+        <button id="toggle-password-btn" type="button" style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 1.2rem;" title="Show Password" aria-label="Show password">👁️</button>
       </div>
 
         <button class="btn-primary" id="auth-btn">Sign In</button>
@@ -308,6 +342,13 @@
       <div class="toggle-link" id="auth-toggle">Need an account? Register here.</div>
       <p id="auth-error" style="color: var(--danger-color); font-size: 0.85rem; text-align: center; margin-top: 0.5rem;"></p>
     </div>
+  </div>
+
+  <!-- Save Error Toast -->
+  <div id="save-error-toast" class="save-toast hidden">
+    <span id="save-error-message">Save failed.</span>
+    <button class="btn-outline" id="save-error-retry" style="padding: 0.35rem 0.75rem;">Retry</button>
+    <button class="icon-btn" id="save-error-dismiss" title="Dismiss" aria-label="Dismiss save error">✕</button>
   </div>
 
   <div class="container">
@@ -331,6 +372,12 @@
       </div>
     </div>
 
+    <!-- Guest Data Safety Nudge -->
+    <div id="guest-nudge-banner" class="guest-nudge hidden">
+      <span>💾 Guest data lives only on this device. <button id="guest-nudge-export" class="link-btn">Export a backup</button> or <button id="guest-nudge-signin" class="link-btn">sign in</button> to keep it safe.</span>
+      <button class="icon-btn" id="guest-nudge-dismiss" title="Dismiss" aria-label="Dismiss guest data reminder">✕</button>
+    </div>
+
     <!-- Global Dynamic Countdown Widget -->
     <div id="global-widget-container" class="global-countdown-widget hidden">
       <div class="widget-title" id="widget-title">Releases In</div>
@@ -342,7 +389,7 @@
         <h1 id="main-title">🗓️ Daily Schedule</h1>
         <div style="display: flex; gap: 0.5rem; align-items: center;">
           <div class="date-picker-wrapper"><input type="date" id="schedule-date"></div>
-          <button class="icon-btn" id="open-settings-btn" title="Settings">⚙️</button>
+          <button class="icon-btn" id="open-settings-btn" title="Settings" aria-label="Open settings">⚙️</button>
         </div>
       </div>
       <div class="progress-container">
@@ -495,6 +542,8 @@
     const soundToggle = document.getElementById('toggle-sounds');
     const compactToggle = document.getElementById('toggle-compact');
     const hideCompletedToggle = document.getElementById('toggle-hide-completed');
+    const liveNowToggle = document.getElementById('toggle-live-now');
+    const taskNotifToggle = document.getElementById('toggle-task-notifications');
     const countdownSelector = document.getElementById('countdown-selector');
     const exportBtn = document.getElementById('export-btn');
     const importBtnUi = document.getElementById('import-btn-ui');
@@ -521,6 +570,10 @@
     
     const guestUi = document.getElementById('guest-ui');
     const userUi = document.getElementById('user-ui');
+    const guestNudgeBanner = document.getElementById('guest-nudge-banner');
+    const guestNudgeExport = document.getElementById('guest-nudge-export');
+    const guestNudgeSignin = document.getElementById('guest-nudge-signin');
+    const guestNudgeDismiss = document.getElementById('guest-nudge-dismiss');
     const profileAvatar = document.getElementById('profile-avatar');
     const profileUsername = document.getElementById('profile-username');
     const logoutBtn = document.getElementById('logout-btn');
@@ -535,7 +588,8 @@
     async function loadSettings() {
       const defaultSettings = { 
         hideCompleted: false, activeCountdown: 'none', enableSounds: true, compactMode: false, 
-        activeTheme: 'auto', musicEnabled: false, musicVolume: 0.3
+        activeTheme: 'auto', musicEnabled: false, musicVolume: 0.3,
+        liveNowEnabled: true, taskNotificationsEnabled: false
       };
       if (currentUser && supabaseClient) {
         const { data, error } = await supabaseClient.from('planner_settings').select('settings').eq('user_id', currentUser.id).maybeSingle();
@@ -554,14 +608,32 @@
       compactToggle.checked = appSettings.compactMode;
       hideCompletedToggle.checked = appSettings.hideCompleted;
       countdownSelector.value = appSettings.activeCountdown || 'none';
+      liveNowToggle.checked = appSettings.liveNowEnabled;
+      taskNotifToggle.checked = appSettings.taskNotificationsEnabled;
       
       applyCompactMode(); updateWidgetVisibility(); applyMusicState();
     }
 
+    // --- Save Error Toast ---
+    const saveErrorToast = document.getElementById('save-error-toast');
+    const saveErrorMessageEl = document.getElementById('save-error-message');
+    const saveErrorRetryBtn = document.getElementById('save-error-retry');
+    const saveErrorDismissBtn = document.getElementById('save-error-dismiss');
+
+    function showSaveErrorToast(message, retryFn) {
+      saveErrorMessageEl.textContent = message;
+      saveErrorToast.classList.remove('hidden');
+      saveErrorRetryBtn.onclick = async () => {
+        saveErrorToast.classList.add('hidden');
+        await retryFn();
+      };
+    }
+    saveErrorDismissBtn.addEventListener('click', () => saveErrorToast.classList.add('hidden'));
+
     async function saveSettings() {
       if (currentUser && supabaseClient) {
         const { error } = await supabaseClient.from('planner_settings').upsert({ user_id: currentUser.id, settings: appSettings, updated_at: new Date().toISOString() });
-        if (error) alert('Your settings could not be saved to the cloud: ' + error.message);
+        if (error) showSaveErrorToast('Settings could not be saved to the cloud.', saveSettings);
       } else {
         localStorage.setItem('app_settings_' + getStorageKeyPrefix(), JSON.stringify(appSettings));
       }
@@ -574,6 +646,14 @@
     soundToggle.addEventListener('change', (e) => { appSettings.enableSounds = e.target.checked; saveSettings(); });
     compactToggle.addEventListener('change', (e) => { appSettings.compactMode = e.target.checked; applyCompactMode(); saveSettings(); });
     hideCompletedToggle.addEventListener('change', (e) => { appSettings.hideCompleted = e.target.checked; saveSettings(); });
+    liveNowToggle.addEventListener('change', (e) => { appSettings.liveNowEnabled = e.target.checked; saveSettings(); });
+    taskNotifToggle.addEventListener('change', (e) => {
+      appSettings.taskNotificationsEnabled = e.target.checked;
+      if (e.target.checked && 'Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+      saveSettings();
+    });
     countdownSelector.addEventListener('change', (e) => { appSettings.activeCountdown = e.target.value; updateWidgetVisibility(); saveSettings(); });
 
     function applyCompactMode() {
@@ -582,7 +662,7 @@
     }
 
     // --- IMPORT / EXPORT (JSON) ---
-    exportBtn.addEventListener('click', async () => {
+    async function exportSchedule() {
       const tasks = await loadTasks();
       if(tasks.length === 0) { alert("Nothing to export!"); return; }
       const blob = new Blob([JSON.stringify(tasks, null, 2)], {type: "application/json"});
@@ -590,7 +670,8 @@
       const a = document.createElement('a');
       a.href = url; a.download = `Schedule_${selectedDate}.json`;
       a.click(); URL.revokeObjectURL(url);
-    });
+    }
+    exportBtn.addEventListener('click', exportSchedule);
 
     importBtnUi.addEventListener('click', () => importFile.click());
     importFile.addEventListener('change', (e) => {
@@ -659,6 +740,13 @@
     }
     setInterval(updateWidgetTimer, 1000);
 
+    // Refresh Live Now / Up Next status once a minute (skipped mid-drag to avoid disrupting reordering)
+    setInterval(() => {
+      if (selectedDate === today && appSettings.liveNowEnabled && !document.querySelector('.task-item.dragging')) {
+        render();
+      }
+    }, 60000);
+
     openSettingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
     closeSettingsBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
 
@@ -667,8 +755,8 @@
     closeAuthBtn.addEventListener('click', () => { authModal.classList.add('hidden'); passInput.type = 'password'; togglePasswordBtn.textContent = '👁️'; });
 
     togglePasswordBtn.addEventListener('click', () => {
-      if(passInput.type === 'password') { passInput.type = 'text'; togglePasswordBtn.textContent = '🙈'; } 
-      else { passInput.type = 'password'; togglePasswordBtn.textContent = '👁️'; }
+      if(passInput.type === 'password') { passInput.type = 'text'; togglePasswordBtn.textContent = '🙈'; togglePasswordBtn.setAttribute('aria-label', 'Hide password'); } 
+      else { passInput.type = 'password'; togglePasswordBtn.textContent = '👁️'; togglePasswordBtn.setAttribute('aria-label', 'Show password'); }
     });
 
     function toggleAuthMode() {
@@ -782,7 +870,7 @@
     async function saveTasks(tasks) {
       if (currentUser && supabaseClient) {
         const { error } = await supabaseClient.from('planner_days').upsert({ user_id: currentUser.id, day: selectedDate, tasks, updated_at: new Date().toISOString() });
-        if (error) { alert('Your schedule could not be saved to the cloud: ' + error.message); return; }
+        if (error) { showSaveErrorToast('Your schedule could not be saved to the cloud.', () => saveTasks(tasks)); return; }
       } else {
         localStorage.setItem(getStorageKey(selectedDate), JSON.stringify(tasks));
       }
@@ -802,10 +890,25 @@
       await saveTasks(tasks);
     }
 
+    // --- Guest Data Safety Nudge ---
+    function updateGuestNudgeVisibility() {
+      const dismissed = localStorage.getItem('guest_nudge_dismissed') === 'true';
+      if (!currentUser && !dismissed) guestNudgeBanner.classList.remove('hidden');
+      else guestNudgeBanner.classList.add('hidden');
+    }
+
+    guestNudgeExport.addEventListener('click', exportSchedule);
+    guestNudgeSignin.addEventListener('click', () => { authModal.classList.remove('hidden'); authError.textContent = ''; });
+    guestNudgeDismiss.addEventListener('click', () => {
+      localStorage.setItem('guest_nudge_dismissed', 'true');
+      updateGuestNudgeVisibility();
+    });
+
     // --- SCHEDULE RENDER LOGIC ---
     async function render() {
       document.body.className = appSettings.compactMode ? 'compact-mode' : '';
       let titleText = "🗓️ Daily Schedule";
+      updateGuestNudgeVisibility();
 
       if (appSettings.activeTheme !== 'auto' && appSettings.activeTheme !== 'default') {
         document.body.classList.add(appSettings.activeTheme);
@@ -832,24 +935,42 @@
       let visibleTasks = 0;
       let completedCount = 0;
 
+      // Live Now / Up Next only applies when viewing today, and only if enabled in Settings
+      const liveInfo = (selectedDate === today && appSettings.liveNowEnabled)
+        ? computeLiveInfo(tasks)
+        : { liveIndex: null, nextIndex: null, nextStartMins: null, nowMins: null };
+      if (selectedDate === today) checkTaskNotifications(tasks, liveInfo);
+
       tasks.forEach((task, index) => {
         if (task.completed) completedCount++;
         if (appSettings.hideCompleted && task.completed) return;
         
         visibleTasks++;
         const taskEl = document.createElement('div');
-        taskEl.className = `task-item ${task.completed ? 'completed' : ''}`;
+        const isLiveNow = index === liveInfo.liveIndex;
+        taskEl.className = `task-item ${task.completed ? 'completed' : ''} ${isLiveNow ? 'live-now' : ''}`;
         taskEl.setAttribute('data-index', index);
         taskEl.setAttribute('draggable', 'true');
+
+        let metaBadge = '';
+        if (isLiveNow) {
+          metaBadge = `<span class="live-badge">🔴 LIVE</span>`;
+        } else if (index === liveInfo.nextIndex) {
+          const minsUntil = liveInfo.nextStartMins - liveInfo.nowMins;
+          metaBadge = `<span class="next-badge">⏱ in ${minsUntil}m</span>`;
+        }
         
         taskEl.innerHTML = `
-          <div class="drag-handle" title="Drag to reorder">☰</div>
-          <div class="checkbox" onclick="toggleTask(${index})"></div>
+          <div class="drag-handle" title="Drag to reorder" aria-label="Reorder task">☰</div>
+          <div class="checkbox" role="checkbox" aria-checked="${task.completed}" aria-label="Mark ${escapeHtml(task.text)} as ${task.completed ? 'incomplete' : 'complete'}" tabindex="0" onclick="toggleTask(${index})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleTask(${index});}"></div>
           <div class="task-content">
-            ${task.time ? `<div class="time-badge">${escapeHtml(task.time)}</div>` : ''}
+            <div class="task-meta-row">
+              ${task.time ? `<div class="time-badge">${escapeHtml(task.time)}</div>` : ''}
+              ${metaBadge}
+            </div>
             <div class="task-text">${escapeHtml(task.text)}</div>
           </div>
-          <button class="btn-delete" onclick="deleteTask(${index})" title="Delete Task">✕</button>
+          <button class="btn-delete" onclick="deleteTask(${index})" title="Delete Task" aria-label="Delete task: ${escapeHtml(task.text)}">✕</button>
         `;
 
         // Desktop Drag and Drop Listeners
@@ -949,6 +1070,62 @@
       if (ampm === 'PM' && hours < 12) hours += 12;
       if (ampm === 'AM' && hours === 12) hours = 0;
       return hours * 60 + minutes;
+    }
+
+    // Live Now / Up Next Logic
+    let notifiedTaskKeys = new Set();
+
+    function computeLiveInfo(tasks) {
+      const now = new Date();
+      const nowMins = now.getHours() * 60 + now.getMinutes();
+      const timed = [];
+
+      tasks.forEach((task, idx) => {
+        if (task.completed) return; // completed tasks don't count as "live"
+        const start = parseTimeText(task.time);
+        if (start === Infinity) return; // skip tasks without a parseable time
+        let end = null;
+        if (task.time && /[–-]/.test(task.time)) {
+          const rangeParts = task.time.split(/[–-]/);
+          if (rangeParts[1]) {
+            const parsedEnd = parseTimeText(rangeParts[1].trim());
+            if (parsedEnd !== Infinity) end = parsedEnd;
+          }
+        }
+        timed.push({ idx, start, end });
+      });
+
+      timed.sort((a, b) => a.start - b.start);
+
+      let liveIndex = null, nextIndex = null, nextStartMins = null;
+      for (let i = 0; i < timed.length; i++) {
+        const entry = timed[i];
+        // A single-time task (no explicit end) is considered live until the next timed task begins
+        const effectiveEnd = entry.end !== null ? entry.end : (timed[i + 1] ? timed[i + 1].start : Infinity);
+        // If the parsed end is earlier than the start, the range crosses midnight (e.g. 11:45 PM – 12:15 AM)
+        const crossesMidnight = entry.end !== null && entry.end < entry.start;
+        const isLive = crossesMidnight
+          ? (nowMins >= entry.start || nowMins < effectiveEnd)
+          : (nowMins >= entry.start && nowMins < effectiveEnd);
+        if (isLive) liveIndex = entry.idx;
+        if (entry.start > nowMins && nextIndex === null) { nextIndex = entry.idx; nextStartMins = entry.start; }
+      }
+      return { liveIndex, nextIndex, nextStartMins, nowMins };
+    }
+
+    function checkTaskNotifications(tasks, liveInfo) {
+      if (!appSettings.taskNotificationsEnabled) return;
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+      if (liveInfo.nextIndex === null) return;
+
+      const minutesUntil = liveInfo.nextStartMins - liveInfo.nowMins;
+      const key = `${selectedDate}_${liveInfo.nextIndex}_${tasks[liveInfo.nextIndex].text}`;
+      if (minutesUntil <= 5 && minutesUntil >= 0 && !notifiedTaskKeys.has(key)) {
+        notifiedTaskKeys.add(key);
+        try {
+          new Notification('Coming up next:', { body: `${tasks[liveInfo.nextIndex].text} starts in ${minutesUntil} min` });
+        } catch (e) { console.log('Notification could not be shown:', e); }
+      }
     }
 
     async function addTask() {
