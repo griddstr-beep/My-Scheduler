@@ -296,6 +296,7 @@
         <select id="countdown-selector" class="settings-select" style="width: 130px; margin-top:0;">
           <option value="none">None</option>
           <option value="gta6">GTA VI</option>
+          <option value="gta6-trailer">GTA 6 Extended Look</option>
           <option value="halloween">Halloween</option>
           <option value="christmas">Christmas</option>
           <option value="newyear">New Year 2027</option>
@@ -710,6 +711,8 @@
       
       if (appSettings.activeCountdown === 'gta6') {
         targetDate = new Date("2026-11-19T00:00:00").getTime(); title = "GTA VI Releases In"; color = "#ff59c7";
+      } else if (appSettings.activeCountdown === 'gta6-trailer') {
+  targetDate = new Date("2026-08-27T21:00:00-04:00").getTime(); title = "GTA VI Extended Look"; color = "#00f0ff";
       } else if (appSettings.activeCountdown === 'halloween') {
         const currentYear = new Date().getFullYear();
         targetDate = new Date(`${currentYear}-10-31T00:00:00`).getTime();
